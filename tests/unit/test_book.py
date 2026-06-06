@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from orderbook_websocket.book import OrderBook, Side
+from orderbook_websocket.book import Level, OrderBook, Side
 
 
 @pytest.fixture
@@ -99,3 +99,62 @@ def test_removing_best_then_querying_next_level() -> None:
     ob.apply_delta(Side.BID, price=100.0, size=0.0)
     assert ob.best_bid == 99.0
     assert ob.spread == pytest.approx(2.0)
+
+
+def test_bid_depth_sorted_highest_first(book: OrderBook) -> None:
+    rows = book.bid_depth()
+    assert [r.price for r in rows] == [100.0, 99.5, 99.0]
+
+
+def test_ask_depth_sorted_lowest_first(book: OrderBook) -> None:
+    rows = book.ask_depth()
+    assert [r.price for r in rows] == [100.5, 101.0, 101.5]
+
+
+def test_depth_cumulative_volume_runs_from_top(book: OrderBook) -> None:
+    rows = book.bid_depth()
+    assert [r.cumulative for r in rows] == pytest.approx([5.0, 13.0, 25.0])
+
+
+def test_depth_respects_level_limit(book: OrderBook) -> None:
+    rows = book.ask_depth(levels=2)
+    assert len(rows) == 2
+    assert rows[-1] == Level(price=101.0, size=9.0, cumulative=13.0)
+
+
+def test_depth_levels_none_returns_all(book: OrderBook) -> None:
+    assert len(book.depth(Side.BID, levels=None)) == 3
+
+
+def test_volume_top_level_only(book: OrderBook) -> None:
+    assert book.volume(Side.BID, levels=1) == pytest.approx(5.0)
+
+
+def test_volume_whole_side(book: OrderBook) -> None:
+    assert book.volume(Side.ASK) == pytest.approx(28.0)
+
+
+def test_is_crossed_false_for_normal_book(book: OrderBook) -> None:
+    assert book.is_crossed() is False
+
+
+def test_is_crossed_true_when_bid_exceeds_ask() -> None:
+    ob = OrderBook()
+    ob.apply_snapshot(bids={101.0: 1.0}, asks={100.0: 1.0})
+    assert ob.is_crossed() is True
+
+
+def test_is_crossed_true_when_locked() -> None:
+    ob = OrderBook()
+    ob.apply_snapshot(bids={100.0: 1.0}, asks={100.0: 1.0})
+    assert ob.is_crossed() is True
+
+
+def test_is_crossed_false_when_one_sided() -> None:
+    ob = OrderBook()
+    ob.apply_delta(Side.BID, price=100.0, size=1.0)
+    assert ob.is_crossed() is False
+
+
+def test_depth_empty_book_returns_empty_list() -> None:
+    assert OrderBook().bid_depth() == []

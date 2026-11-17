@@ -69,16 +69,16 @@ book.apply_snapshot(
 
 # Stream deltas exactly as a websocket would push them:
 book.apply_delta(Side.BID, price=100.25, size=3.0)  # new best bid
-book.apply_delta(Side.ASK, price=100.5, size=0.0)   # level fully consumed -> removed
+book.apply_delta(Side.ASK, price=100.5, size=0.0)  # level fully consumed -> removed
 
 # Top of book and aggregated depth:
-print(book.best_bid, book.best_ask, book.spread)    # 100.25 101.0 0.75
-print(book.bid_depth(levels=2))                      # [Level(price=100.25, size=3.0, cumulative=3.0), ...]
+print(book.best_bid, book.best_ask, book.spread)  # 100.25 101.0 0.75
+print(book.bid_depth(levels=2))  # [Level(price=100.25, size=3.0, cumulative=3.0), ...]
 
 # Microstructure signals:
-print(metrics.microprice(book))                      # size-weighted fair value
-print(metrics.imbalance(book, levels=1))             # buy/sell pressure in [-1, +1]
-print(metrics.spread_bps(book))                      # spread in basis points
+print(metrics.microprice(book))  # size-weighted fair value
+print(metrics.imbalance(book, levels=1))  # buy/sell pressure in [-1, +1]
+print(metrics.spread_bps(book))  # spread in basis points
 
 # Catch a desynced book and resync:
 if not validator.validate(book) or not validator.verify_checksum(book, exchange_crc):
